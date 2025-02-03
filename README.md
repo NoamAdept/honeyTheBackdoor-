@@ -1,7 +1,7 @@
 
 # **🍯 HONEY THE BACKDOOR! 🐝🔓**  
 
-This project is a practical demonstration of a self-propagating software exploit, inspired by Ken Thompson’s seminal Turing Award lecture, Reflections on Trusting Trust (1984)
+This project is a practical demonstration of a compiler injection software exploit, inspired by Ken Thompson’s seminal Turing Award lecture, Reflections on Trusting Trust (1984)
 
 ### **🚀 Overview**  
 **HONEY THE BACKDOOR!** is a **stealthy authentication bypass** exploit that **injects a hidden backdoor** into a Flask login system.  

